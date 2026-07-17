@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meu FaceSwap Privado</title>
-    <!-- Importa o cliente do Gradio para conversar com a IA -->
-    <script src="https://cdn.jsdelivr.net/npm/@gradio/client@0.1.4/dist/index.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; background: #121212; color: white; text-align: center; padding: 20px; }
         .box { max-width: 500px; margin: 50px auto; background: #1e1e1e; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
@@ -29,26 +27,23 @@
         <p id="error-msg" style="color: #ff4d4d; margin-top: 10px; font-weight: bold;"></p>
     </div>
 
-    <!-- TELA DO APP (SÓ APARECE APÓS DIGITAR A SENHA CORRETA) -->
+    <!-- TELA DO APP -->
     <div id="app-screen" class="box hidden">
-        <h2>IA Privada: FaceSwap & Estilo</h2>
-        <p>Envie sua foto e descreva a mudança de cabelo ou roupa:</p>
+        <h2>IA Privada (Sem Custos)</h2>
+        <p>Insira o que você quer gerar na imagem:</p>
         
-        <input type="file" id="photo-input" accept="image/*">
-        <input type="text" id="prompt-input" placeholder="Ex: Cabelo loiro liso, terno preto de gala">
-        
+        <input type="text" id="prompt-input" placeholder="Ex: Um gato jogando videogame, estilo anime">
         <button onclick="processIA()">Gerar Imagem</button>
         
-        <div id="loading" class="hidden">Enviando para a nuvem e processando... Aguarde...</div>
-        <img id="output-img" src="" class="hidden" alt="Resultado da IA">
+        <div id="loading" class="hidden">Conectando à IA gratuita... Aguarde...</div>
+        <img id="output-img" class="hidden" alt="Resultado da IA">
     </div>
 
     <script>
-        // Defina a senha que você quiser aqui:
         const SENHA_CORRETA = "MinhaSenhaSuperSecreta123"; 
         
-        // Coloque aqui o link do seu Hugging Face Space assim que criá-lo
-        const HUGGINGFACE_SPACE = "seu-usuario/seu-space-ia"; 
+        // COLE AQUI A SUA TOKEN DO HUGGING FACE QUE COMEÇA COM "hf_"
+        const HF_TOKEN = "SUA_TOKEN_AQUI"; 
 
         function checkPassword() {
             const typedPassword = document.getElementById("password-input").value;
@@ -56,17 +51,13 @@
                 document.getElementById("login-screen").classList.add("hidden");
                 document.getElementById("app-screen").classList.remove("hidden");
             } else {
-                document.getElementById("error-msg").innerText = "Senha incorreta! Tente novamente.";
+                document.getElementById("error-msg").innerText = "Senha incorreta!";
             }
         }
 
         async function processIA() {
-            const fileInput = document.getElementById("photo-input").files[0];
             const promptText = document.getElementById("prompt-input").value;
-            
-            if(!fileInput) {
-                return alert("Por favor, selecione uma foto antes de gerar!");
-            }
+            if(!promptText) return alert("Digite o que você quer gerar!");
             
             const loadingDiv = document.getElementById("loading");
             const outputImg = document.getElementById("output-img");
@@ -75,15 +66,24 @@
             outputImg.classList.add("hidden");
             
             try {
-                // Conecta e envia a foto para o servidor de IA gratuito do Hugging Face
-                const app = await gradio.client(HUGGINGFACE_SPACE);
-                const result = await app.predict("/predict", [fileInput, promptText]);
-                
-                outputImg.src = result.data[0].url;
+                // Envia o prompt direto para o modelo Stable Diffusion do Hugging Face
+                const response = await fetch(
+                    "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
+                    {
+                        headers: { Authorization: `Bearer ${HF_TOKEN}` },
+                        method: "POST",
+                        body: JSON.stringify({ inputs: promptText }),
+                    }
+                );
+
+                if (!response.ok) throw new Error("Erro na API da IA");
+
+                const blob = await response.blob();
+                outputImg.src = URL.createObjectURL(blob);
                 outputImg.classList.remove("hidden");
             } catch (e) {
                 console.error(e);
-                alert("Erro ao conectar ao servidor de IA. Verifique se o seu Space está rodando.");
+                alert("Erro ao gerar imagem. Verifique se colou a sua Token corretamente.");
             } finally {
                 loadingDiv.classList.add("hidden");
             }
