@@ -3,17 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meu FaceSwap Privado</title>
+    <title>IA Privada</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #121212; color: white; text-align: center; padding: 20px; }
-        .box { max-width: 500px; margin: 50px auto; background: #1e1e1e; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        input, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: none; box-sizing: border-box; }
-        input { background: #333; color: white; font-size: 16px; }
-        button { background: #007bff; color: white; cursor: pointer; font-weight: bold; font-size: 16px; transition: background 0.2s; }
-        button:hover { background: #0056b3; }
+        body { font-family: sans-serif; background: #121212; color: white; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .box { background: #1e1e1e; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: none; box-sizing: border-box; }
+        input { background: #333; color: white; }
+        button { background: #007bff; color: white; cursor: pointer; font-weight: bold; }
         .hidden { display: none; }
-        img { max-width: 100%; border-radius: 8px; margin-top: 15px; }
-        #loading { margin: 15px 0; color: #ffc107; font-weight: bold; }
+        #output-img { width: 100%; margin-top: 15px; border-radius: 8px; }
+        .loading { color: #ffc107; margin: 10px 0; }
     </style>
 </head>
 <body>
@@ -21,33 +20,26 @@
     <!-- TELA DE LOGIN -->
     <div id="login-screen" class="box">
         <h2>Acesso Restrito</h2>
-        <p>Insira a senha para acessar a IA:</p>
-        <input type="password" id="password-input" placeholder="Digite a senha...">
+        <input type="password" id="password-input" placeholder="Senha...">
         <button onclick="checkPassword()">Entrar</button>
-        <p id="error-msg" style="color: #ff4d4d; margin-top: 10px; font-weight: bold;"></p>
+        <p id="error-msg" style="color: #ff4d4d;"></p>
     </div>
 
     <!-- TELA DO APP -->
     <div id="app-screen" class="box hidden">
-        <h2>IA Privada (Sem Custos)</h2>
-        <p>Insira o que você quer gerar na imagem:</p>
-        
-        <input type="text" id="prompt-input" placeholder="Ex: Um gato jogando videogame, estilo anime">
+        <h2>Gerador de IA</h2>
+        <input type="text" id="prompt-input" placeholder="O que você quer criar?">
         <button onclick="processIA()">Gerar Imagem</button>
-        
-        <div id="loading" class="hidden">Conectando à IA gratuita... Aguarde...</div>
-        <img id="output-img" class="hidden" alt="Resultado da IA">
+        <div id="loading" class="loading hidden">Processando...</div>
+        <img id="output-img" class="hidden">
     </div>
 
     <script>
         const SENHA_CORRETA = "MinhaSenhaSuperSecreta123"; 
-        
-        // COLE AQUI A SUA TOKEN DO HUGGING FACE QUE COMEÇA COM "hf_"
-        const HF_TOKEN = "SUA_TOKEN_AQUI"; 
+        const HF_TOKEN = "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";
 
         function checkPassword() {
-            const typedPassword = document.getElementById("password-input").value;
-            if(typedPassword === SENHA_CORRETA) {
+            if(document.getElementById("password-input").value === SENHA_CORRETA) {
                 document.getElementById("login-screen").classList.add("hidden");
                 document.getElementById("app-screen").classList.remove("hidden");
             } else {
@@ -57,16 +49,15 @@
 
         async function processIA() {
             const promptText = document.getElementById("prompt-input").value;
-            if(!promptText) return alert("Digite o que você quer gerar!");
+            if(!promptText) return alert("Digite algo!");
             
-            const loadingDiv = document.getElementById("loading");
-            const outputImg = document.getElementById("output-img");
+            const loading = document.getElementById("loading");
+            const img = document.getElementById("output-img");
             
-            loadingDiv.classList.remove("hidden");
-            outputImg.classList.add("hidden");
+            loading.classList.remove("hidden");
+            img.classList.add("hidden");
             
             try {
-                // Envia o prompt direto para o modelo Stable Diffusion do Hugging Face
                 const response = await fetch(
                     "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
                     {
@@ -76,16 +67,15 @@
                     }
                 );
 
-                if (!response.ok) throw new Error("Erro na API da IA");
+                if (!response.ok) throw new Error("Erro na API");
 
                 const blob = await response.blob();
-                outputImg.src = URL.createObjectURL(blob);
-                outputImg.classList.remove("hidden");
+                img.src = URL.createObjectURL(blob);
+                img.classList.remove("hidden");
             } catch (e) {
-                console.error(e);
-                alert("Erro ao gerar imagem. Verifique se colou a sua Token corretamente.");
+                alert("Erro ao conectar.");
             } finally {
-                loadingDiv.classList.add("hidden");
+                loading.classList.add("hidden");
             }
         }
     </script>
