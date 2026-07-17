@@ -1,38 +1,93 @@
-import gradio as gr
-import torch
-from PIL import Image
-# Você pode importar bibliotecas como diffusers ou insightface aqui
-# Exemplo usando um pipeline leve que roda bem na nuvem gratuita do HF:
-from diffusers import StableDiffusionInpaintPipeline
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu FaceSwap Privado</title>
+    <!-- Importa o cliente do Gradio para conversar com a IA -->
+    <script src="https://cdn.jsdelivr.net/npm/@gradio/client@0.1.4/dist/index.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background: #121212; color: white; text-align: center; padding: 20px; }
+        .box { max-width: 500px; margin: 50px auto; background: #1e1e1e; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        input, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: none; box-sizing: border-box; }
+        input { background: #333; color: white; font-size: 16px; }
+        button { background: #007bff; color: white; cursor: pointer; font-weight: bold; font-size: 16px; transition: background 0.2s; }
+        button:hover { background: #0056b3; }
+        .hidden { display: none; }
+        img { max-width: 100%; border-radius: 8px; margin-top: 15px; }
+        #loading { margin: 15px 0; color: #ffc107; font-weight: bold; }
+    </style>
+</head>
+<body>
 
-# Carrega o modelo na CPU de forma otimizada para não estourar os 16GB gratuitos
-pipe = StableDiffusionInpaintPipeline.from_pretrained(
-    "runwayml/stable-diffusion-inpainting", 
-    torch_dtype=torch.float32
-)
+    <!-- TELA DE LOGIN -->
+    <div id="login-screen" class="box">
+        <h2>Acesso Restrito</h2>
+        <p>Insira a senha para acessar a IA:</p>
+        <input type="password" id="password-input" placeholder="Digite a senha...">
+        <button onclick="checkPassword()">Entrar</button>
+        <p id="error-msg" style="color: #ff4d4d; margin-top: 10px; font-weight: bold;"></p>
+    </div>
 
-def transformar_imagem(imagem_base, prompt_texto):
-    if imagem_base is None:
-        return None
+    <!-- TELA DO APP (SÓ APARECE APÓS DIGITAR A SENHA CORRETA) -->
+    <div id="app-screen" class="box hidden">
+        <h2>IA Privada: FaceSwap & Estilo</h2>
+        <p>Envie sua foto e descreva a mudança de cabelo ou roupa:</p>
         
-    # Aqui a mágica acontece: a IA recebe a sua foto,
-    # identifica o que mudar através do seu prompt (cabelo/roupa)
-    # e processa na nuvem do Hugging Face.
-    
-    # Criamos uma máscara simples para a área de edição (exemplo conceitual)
-    mascara = Image.new("RGB", imagem_base.size, "white") 
-    
-    # Executa o modelo de IA
-    resultado = pipe(prompt=prompt_texto, image=imagem_base, mask_image=mascara).images[0]
-    
-    return resultado
+        <input type="file" id="photo-input" accept="image/*">
+        <input type="text" id="prompt-input" placeholder="Ex: Cabelo loiro liso, terno preto de gala">
+        
+        <button onclick="processIA()">Gerar Imagem</button>
+        
+        <div id="loading" class="hidden">Enviando para a nuvem e processando... Aguarde...</div>
+        <img id="output-img" src="" class="hidden" alt="Resultado da IA">
+    </div>
 
-# Configura a API que o seu site vai chamar em segundo plano
-interface = gr.Interface(
-    fn=transformar_imagem,
-    inputs=[gr.Image(type="pil"), gr.Textbox()],
-    outputs=gr.Image(type="pil"),
-    api_name="predict"
-)
+    <script>
+        // Defina a senha que você quiser aqui:
+        const SENHA_CORRETA = "MinhaSenhaSuperSecreta123"; 
+        
+        // Coloque aqui o link do seu Hugging Face Space assim que criá-lo
+        const HUGGINGFACE_SPACE = "seu-usuario/seu-space-ia"; 
 
-interface.launch()
+        function checkPassword() {
+            const typedPassword = document.getElementById("password-input").value;
+            if(typedPassword === SENHA_CORRETA) {
+                document.getElementById("login-screen").classList.add("hidden");
+                document.getElementById("app-screen").classList.remove("hidden");
+            } else {
+                document.getElementById("error-msg").innerText = "Senha incorreta! Tente novamente.";
+            }
+        }
+
+        async function processIA() {
+            const fileInput = document.getElementById("photo-input").files[0];
+            const promptText = document.getElementById("prompt-input").value;
+            
+            if(!fileInput) {
+                return alert("Por favor, selecione uma foto antes de gerar!");
+            }
+            
+            const loadingDiv = document.getElementById("loading");
+            const outputImg = document.getElementById("output-img");
+            
+            loadingDiv.classList.remove("hidden");
+            outputImg.classList.add("hidden");
+            
+            try {
+                // Conecta e envia a foto para o servidor de IA gratuito do Hugging Face
+                const app = await gradio.client(HUGGINGFACE_SPACE);
+                const result = await app.predict("/predict", [fileInput, promptText]);
+                
+                outputImg.src = result.data[0].url;
+                outputImg.classList.remove("hidden");
+            } catch (e) {
+                console.error(e);
+                alert("Erro ao conectar ao servidor de IA. Verifique se o seu Space está rodando.");
+            } finally {
+                loadingDiv.classList.add("hidden");
+            }
+        }
+    </script>
+</body>
+</html>
