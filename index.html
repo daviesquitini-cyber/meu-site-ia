@@ -1,0 +1,38 @@
+import gradio as gr
+import torch
+from PIL import Image
+# Você pode importar bibliotecas como diffusers ou insightface aqui
+# Exemplo usando um pipeline leve que roda bem na nuvem gratuita do HF:
+from diffusers import StableDiffusionInpaintPipeline
+
+# Carrega o modelo na CPU de forma otimizada para não estourar os 16GB gratuitos
+pipe = StableDiffusionInpaintPipeline.from_pretrained(
+    "runwayml/stable-diffusion-inpainting", 
+    torch_dtype=torch.float32
+)
+
+def transformar_imagem(imagem_base, prompt_texto):
+    if imagem_base is None:
+        return None
+        
+    # Aqui a mágica acontece: a IA recebe a sua foto,
+    # identifica o que mudar através do seu prompt (cabelo/roupa)
+    # e processa na nuvem do Hugging Face.
+    
+    # Criamos uma máscara simples para a área de edição (exemplo conceitual)
+    mascara = Image.new("RGB", imagem_base.size, "white") 
+    
+    # Executa o modelo de IA
+    resultado = pipe(prompt=prompt_texto, image=imagem_base, mask_image=mascara).images[0]
+    
+    return resultado
+
+# Configura a API que o seu site vai chamar em segundo plano
+interface = gr.Interface(
+    fn=transformar_imagem,
+    inputs=[gr.Image(type="pil"), gr.Textbox()],
+    outputs=gr.Image(type="pil"),
+    api_name="predict"
+)
+
+interface.launch()
